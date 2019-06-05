@@ -3,7 +3,10 @@ const chat = require('./logs.json');
 const users = require('./users.json');
 const cfg = require('./config.json');
 const express = require('express');
+const crypto = require('crypto');
 const app = express();
+
+//empty users {"users":[]}
 
 let writeFile;
 
@@ -17,7 +20,7 @@ function writeFileTimeout() {
   }, 30000)
 }
 
-writeFileTimeout();
+// writeFileTimeout();
 
 function generateId(arr) {
   return arr[arr.length-1].id;
@@ -34,29 +37,39 @@ app.get("/chat", (req, res) => {
 })
 
 app.get("/validate/:username", (req, res) => {
-  let username = req.params.username;
-  if (users.users.some(user => user.username === username)) {
-    res.status(409).send("username already exists");
+  const exists = users.users.some(user => user.username === req.params.username);
+  if (!exists) {
+    res.status(200).end();
+  } else {
+    res.send("user exists");
   }
-  res.status(200).end();
 })
 
-app.get("/login/:username/:password", (req, res) => {
-  console.log(users);
-  for (let user of users.users) {
-    if (user.username === req.params.username) {
-      if (user.password === req.params.password) {
-        //proceed to login
-        console.log("valid login details");
-      } else {
-        console.log("invalid password");
-      }
+app.post("/login", (req, res) => {
+  crypto.pbkdf2(req.body.password, 'emilsfetaserver', 100000, 64, 'sha512', (err, derivedKey) => {
+    if (err) throw err;
+    let user = {username: req.body.username, password: derivedKey.toString('hex')};
+    if (users.users.length < 1) { //add first user no matter what
+      users.users.push(user);
+      res.status(200).send("Registered!");
     } else {
-      //proceed to add user
-      console.log("user does not exist")
+      const exists = users.users.some(user => user.username === req.body.username);
+      if (exists) { //conclusion is that user already exist, now check pw
+        for (let u of users.users) {
+          if (u.username === req.body.username) {
+            if (u.password === derivedKey.toString('hex')) {
+              res.status(200).send("Login started!");
+            } else {
+              res.status(401).send("Invalid username or password...");
+            }
+          }
+        }
+      } else { //username doesn't exist, therefore we added the user
+        users.users.push(user);
+        res.status(200).send("Registered!");
+      }
     }
-  }
-  res.end();
+  });
 })
 
 app.post("/chat", (req, res) => {

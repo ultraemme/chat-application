@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState} from 'react';
+import { Redirect } from 'react-router-dom';
 import './Login.css';
 import axios from 'axios';
 
 function Login() {
   const [loginDetails, setLoginDetails] = useState({username: "", password: ""});
   const [status, setStatus] = useState(0);
+  const [login, setLogin] = useState(false);
 
   function handleChange (e) {
+    if (e.nativeEvent.target.id === "username" && !e.nativeEvent.target.value) {
+      setStatus(0);
+    }
     setLoginDetails({...loginDetails, [e.nativeEvent.target.id]: e.nativeEvent.target.value});
   }
 
@@ -14,42 +19,53 @@ function Login() {
     if (e.nativeEvent.target.value) {
       axios.get(`/validate/${loginDetails.username}`)
         .then(res => {
-          setStatus(1);
+          res.data === "user exists" ? setStatus(2) : setStatus(1);
         })
         .catch(err => {
-          setStatus(-1);
+          console.log(err);
         })
     }
   }
 
   function requestLogin (e) {
     e.preventDefault();
-    if (status === 1 && loginDetails.password) {
-      //send login details to API
-      axios.get(`/login/${loginDetails.username}/${loginDetails.password}`)
+    if (loginDetails.username && loginDetails.password) {
+      axios.post("/login", {username: loginDetails.username, password: loginDetails.password})
         .then(res => {
-          console.log(res);
+          if (res.status === 200) {
+            setLogin(true);
+          }
+        })
+        .catch(err => {
+          setStatus(-1);
         })
     } else {
-      //if username is taken or password input is invalid
-      console.log("invalid username or password")
+      console.log("Invalid input")
     }
   }
 
   return (
+    login ? <Redirect to="/lobby"/> :
+    (
     <main className="login">
       <form className="login__form" action="" onSubmit={requestLogin}>
         <label className="login__label" htmlFor="">USERNAME</label><br/>
         {
           status === 0 ? <input className="login__input" id="username" type="text" onChange={handleChange} onBlur={validateChange}/> :
           status === 1 ? <input className="login__input login__input--valid" id="username" type="text" onChange={handleChange} onBlur={validateChange}/> :
+          status === 2 ? <input className="login__input login__input--exists" id="username" type="text" onChange={handleChange} onBlur={validateChange}/> :
           <input className="login__input login__input--invalid" id="username" type="text" onChange={handleChange} onBlur={validateChange}/>
+
         }
         <label className="login__label" htmlFor="">PASSWORD</label><br/>
-        <input className="login__input" id="password" type="password" onChange={handleChange}/>
+        {
+          status === -1 ? <input className="login__input login__input--invalid" id="password" type="password" onChange={handleChange}/> :
+          <input className="login__input" id="password" type="password" onChange={handleChange}/>
+        }
         <button type="submit" className="login__submit">SIGN IN</button>
       </form>
     </main>
+    )
   );
 }
 

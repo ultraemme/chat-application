@@ -40,6 +40,11 @@
   background-color: #aef5b0;
 }
 
+.login__input--exists {
+  border: 1px solid #6566d0;
+  background-color: #c9c5f1;
+}
+
 .login__input--invalid {
   border: 1px solid #b73f3d;
   background-color: #f5b3a1;
