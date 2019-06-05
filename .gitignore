@@ -7,6 +7,9 @@
 
 # testing
 /coverage
+/server/config.json
+/server/notes.txt
+/server/users.json
 
 # production
 /build
