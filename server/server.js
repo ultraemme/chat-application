@@ -6,6 +6,18 @@ const express = require('express');
 const crypto = require('crypto');
 const app = express();
 
+const socket = require('socket.io');
+const port = cfg.website.port;
+const server = app.listen(port, () => console.log(`Listening on ${port}`));
+const io = socket(server);
+
+io.on('connection', (socket) => {
+  console.log('connection established ' + socket.id)
+
+  socket.on('chat', (data) => {
+    io.sockets.emit('chat', data);
+  })
+})
 //empty users {"users":[]}
 
 let writeFile;
@@ -26,8 +38,8 @@ function generateId(arr) {
   return arr[arr.length-1].id;
 }
 
-let roomId = generateId(chat.chat);
-let msgId = generateId(chat.chat[chat.chat.length-1].messages);
+let roomId = generateId(chat.logs);
+let msgId = generateId(chat.logs[chat.logs.length-1].messages);
 console.log(`roomId: ${roomId}, msgId: ${msgId}`);
 
 app.use(express.json());
@@ -52,6 +64,7 @@ app.post("/login", (req, res) => {
     if (users.users.length < 1) { //add first user no matter what
       users.users.push(user);
       res.status(200).send("Registered!");
+      //write to users.json
     } else {
       const exists = users.users.some(user => user.username === req.body.username);
       if (exists) { //conclusion is that user already exist, now check pw
@@ -67,12 +80,17 @@ app.post("/login", (req, res) => {
       } else { //username doesn't exist, therefore we added the user
         users.users.push(user);
         res.status(200).send("Registered!");
+        //write to users.json
       }
     }
   });
 })
 
-app.post("/chat", (req, res) => {
+app.get("/channels", (req, res) => {
+  res.status(200).send(chat);
+})
+
+app.post("/channels", (req, res) => {
   roomId++;
   msgId++;
   const body = req.body;
@@ -87,7 +105,7 @@ app.post("/chat", (req, res) => {
       }
     ]
   }
-  chat.chat.push(room);
+  chat.logs.push(room);
   res.status(200).send(room);
 })
 
@@ -100,11 +118,5 @@ app.post("/chat/msg", (req, res) => {
     user: body.user,
     message: body.message
   }
-})
+});
 
-
-
-
-
-const port = cfg.website.port;
-app.listen(port, () => console.log(`Listening on ${port}`))
