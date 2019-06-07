@@ -1,6 +1,68 @@
 .channels {
   width: 15%;
   min-width: 140px;
-  height: 100vh;
-  background-color: #62b779;
+  height: 100%;
+  border-right: 1px solid rgb(228, 228, 228);
+  padding: 20px;
+  box-sizing: border-box;
 }
+
+.channels__heading {
+  text-align: center;
+}
+
+.channels__list {
+  list-style: none;
+  text-align: center;
+  padding: 0;
+}
+
+.channels__list li {
+  user-select: none;
+  border: 1px solid #82d999;
+  background-color: rgba(183, 255, 185, 0.66);
+  padding: 5px 0 5px 0;
+  margin: 15px auto 0 auto;
+  border-radius: 2px;
+}
+
+.channels__list li:hover {
+  cursor: pointer;
+  transition: ease-in-out 0.2s;
+  border: 1px solid #62b779;
+  background-color: #aef5b0;
+}
+
+.channels__new-channel:after {
+  transition: ease-in-out 0.175s;
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  height: 1px;
+  top: 100%;
+  background-color: #e3e3e3;
+  margin-top: 12px;
+}
+
+.channels__new-channel:hover:after {
+  position: absolute;
+  left: 45px;
+  right: 45px;
+}
+
+.channels__list .channels__new-channel {
+  cursor: pointer;
+  position: relative;
+  border: 1px solid rgba(106, 107, 255, 0.42);
+  background-color: rgba(215, 211, 255, 0.65);
+  margin-bottom: 35px;
+  font-weight: bold;
+}
+
+.channels__list .channels__new-channel:hover {
+  border: 1px solid #6566d0;
+  background-color: rgba(201, 197, 241, 0.76);
+}
+

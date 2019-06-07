@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Channels.css'
+import Modal from './Modal';
 import axios from 'axios';
 
 function Channels(props) {
   const [channels, setChannels] = useState([]);
+  const [channelModal, setChannelModal] = useState(false);
+
+  useEffect(() => {
+    getChannels();
+  }, []);
+
+  function createChannel (name) {
+    console.log(name);
+  }
 
   function getChannels () {
     axios.get("/channels")
       .then(res => {
-        console.log(res.data);
         setChannels(res.data.logs);
       })
       .catch(err => {
@@ -22,16 +31,29 @@ function Channels(props) {
     })
   }
 
+  function toggleModal (e) {
+    if (channelModal) {
+      setChannelModal(false);
+    } else {
+      console.log(e.nativeEvent);
+      setChannelModal(true);
+    }
+  }
+
   return (
     <div className="channels">
-      <p onClick={getChannels}>Channels</p>
-      <ul>
+      <h2 className="channels__heading" onClick={getChannels}>Channels</h2>
+      <ul className="channels__list">
+        <li className="channels__new-channel" onClick={(e) => toggleModal(e)}>New channel</li>
         {
           channels.map(chan => {
             return <li key={chan.id} onClick={() => getMessages(chan)}>{chan.name}</li>
           })
         }
       </ul>
+      {
+        channelModal ? <Modal toggleModal={toggleModal} createChannel={createChannel} /> : null
+      }
     </div>
   );
 }

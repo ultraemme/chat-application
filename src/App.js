@@ -7,10 +7,10 @@ import Lobby from './components/Lobby';
 function App() {
   return (
     <Router>
-      <div>
+      <>
         <Route exact path='/' component={Login} />
         <Route path='/lobby' component={Lobby} />
-      </div>
+      </>
     </Router>
   );
 }

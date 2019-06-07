@@ -1,5 +1,51 @@
 .chat {
   width: 70%;
-  height: 100vh;
-  background-color: #3f40b7;
+  height: 100%;
+  border-right: 1px solid rgb(228, 228, 228);
+  padding: 20px;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.chat__heading {
+
+}
+
+.chat__message-container {
+
+}
+
+.chat__input {
+  transition: ease-in-out 0.1s;
+  box-sizing: border-box;
+  margin-top: 5px;
+  width: 85%;
+  height: 30px;
+  border: 1px solid #DADADA;
+  background-color: #F7F7F7;
+  outline: none;
+  padding-left: 5px;
+  margin-bottom: 20px;
+  position: absolute;
+  bottom: 0;
+}
+
+.chat__input:focus {
+  border: 1px solid #c6c6c6;
+  background-color: #e3e3e3;
+}
+
+.chat__send {
+  transition: ease-in-out 0.275s;
+  position: absolute;
+  margin-bottom: 20px;
+  margin-right: 40px;
+  height: 30px;
+  bottom: 0;
+  width: 75px;
+  left: calc(85% + 30px);
+}
+
+.chat__send--hidden {
+  opacity: 0;
 }

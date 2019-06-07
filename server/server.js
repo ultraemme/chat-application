@@ -11,12 +11,28 @@ const port = cfg.website.port;
 const server = app.listen(port, () => console.log(`Listening on ${port}`));
 const io = socket(server);
 
+let userCount = 0;
+
 io.on('connection', (socket) => {
-  console.log('connection established ' + socket.id)
+  userCount++;
+  console.log('connection established - ' + socket.id)
 
   socket.on('chat', (data) => {
     io.sockets.emit('chat', data);
+  });
+
+  socket.on('user-connect', (data) => {
+    io.sockets.emit('user-connect', data);
   })
+
+  socket.on('user-disconnect', (data) => {
+    userCount--;
+    io.sockets.emit('user-disconnect', data);
+    console.log(userCount);
+  })
+  console.log(userCount);
+  //io.sockets.clients().connected list of all connected id's
+  // console.log(io.sockets.clients().connected);
 })
 //empty users {"users":[]}
 

@@ -2,6 +2,7 @@ import React, { useState} from 'react';
 import { Redirect } from 'react-router-dom';
 import './Login.css';
 import axios from 'axios';
+import { updateUser } from '../Store'
 
 function Login() {
   const [loginDetails, setLoginDetails] = useState({username: "", password: ""});
@@ -33,6 +34,7 @@ function Login() {
       axios.post("/login", {username: loginDetails.username, password: loginDetails.password})
         .then(res => {
           if (res.status === 200) {
+            updateUser(loginDetails.username);
             setLogin(true);
           }
         })
