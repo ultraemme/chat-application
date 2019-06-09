@@ -9,13 +9,22 @@ function Channels(props) {
 
   useEffect(() => {
     getChannels();
+    props.socket.on('channel', (data) => {
+      setChannels(data.logs);
+    })
   }, []);
 
-  function createChannel (name) {
-    console.log(name);
+  function createChannel(name) {
+    axios.post('/channels', { name })
+      .then(res => {
+        props.socket.emit('channel', (name))
+      })
+      .catch(err => {
+        console.log(err);
+      })
   }
 
-  function getChannels () {
+  function getChannels() {
     axios.get("/channels")
       .then(res => {
         setChannels(res.data.logs);
@@ -25,29 +34,34 @@ function Channels(props) {
       })
   }
 
-  function getMessages (chan) {
-    props.socket.emit('chat', { //emit event to lobby.js
-      message: chan.name
-    })
+  function getMessages(chan) {
+    axios.get(`/messages/${chan.id}`)
+      .then(res => {
+        props.socket.emit('join', chan.name);
+        props.setRoom(chan.id, chan.name, chan.users);
+        props.setMessages(res.data);
+      })
+      .catch(err => {
+        console.log(err);
+      })
   }
 
   function toggleModal (e) {
     if (channelModal) {
       setChannelModal(false);
     } else {
-      console.log(e.nativeEvent);
       setChannelModal(true);
     }
   }
 
   return (
     <div className="channels">
-      <h2 className="channels__heading" onClick={getChannels}>Channels</h2>
+      <h2 className="channels__heading">Channels</h2>
       <ul className="channels__list">
         <li className="channels__new-channel" onClick={(e) => toggleModal(e)}>New channel</li>
         {
           channels.map(chan => {
-            return <li key={chan.id} onClick={() => getMessages(chan)}>{chan.name}</li>
+            return <li className="channels__channel" key={chan.id} onClick={() => getMessages(chan)}>{chan.name}</li>
           })
         }
       </ul>

@@ -48,4 +48,35 @@
 
 .chat__send--hidden {
   opacity: 0;
+  pointer-events: none;
+}
+
+.chat__message-join {
+  padding-bottom: 20px;
+}
+
+.chat__message {
+  display: block;
+}
+
+.chat__delete {
+  position: absolute;
+  top: 23px;
+  right: 38px;
+  box-sizing: border-box;
+  width: 120px;
+  text-align: center;
+  transition: ease-in-out 0.2s;
+  user-select: none;
+  border: 1px solid rgba(217, 73, 71, 0.68);
+  background-color: #ffbaa8;
+  padding: 5px 0 5px 0;
+  margin: 15px auto 0 auto;
+  border-radius: 2px;
+}
+
+.chat__delete:hover {
+  cursor: pointer;
+  border: 1px solid rgba(203, 74, 72, 0.9);
+  background-color: #ff9685;
 }

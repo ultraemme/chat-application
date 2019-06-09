@@ -1,29 +1,81 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Chat.css';
+import axios from 'axios';
+import { user$ } from '../Store';
+import moment from 'moment';
 
-function Chat() {
+function Chat(props) {
   const [message, setMessage] = useState("");
   const [send, setSend] = useState(false);
+  const chatInput = React.createRef();
+  const [currentMessages, setCurrentMessages] = useState([]);
 
-  function handleChange (e) {
-    e.nativeEvent.target.value ? setSend(true) : setSend(false);
+  const updateMessages = (newMsg) => {
+    let arr = [...currentMessages];
+    arr.push(newMsg);
+    setCurrentMessages(arr);
+  }
+
+  props.socket.removeListener('chat');
+  props.socket.on('chat', data => {
+    updateMessages(data);
+  })
+
+  useEffect(() => {
+    setCurrentMessages(props.messages);
+  }, [props.messages])
+
+  function onChange (e) {
     setMessage(e.target.value);
+    e.nativeEvent.target.value ? setSend(true) : setSend(false);
   }
 
   function sendMessage (e) {
     e.preventDefault();
-    console.log(message);
+    if (props.currentRoom.id === 0) return;
+    axios.post(`/messages/${props.currentRoom.id}`, { user: user$.value, message })
+      .then(res => {
+        chatInput.current.value = "";
+        setSend(false);
+        setMessage("");
+        props.socket.emit('chat', {room: props.currentRoom.name, timestamp: new Date(), user: user$.value, message}, function (response) {
+          updateMessages(response);
+        });
+      })
+      .catch(err => {
+        console.log(err);
+      })
+  }
+
+  function deleteChannel () {
+    axios.delete(`/channels/${props.currentRoom.id}`)
+      .then(res => {
+        props.reset();
+      })
+      .catch(err => {
+        console.error(err);
+      })
   }
 
   return (
     <div className="chat">
-      <h2 className="chat__heading">Chat</h2>
+      <h2 className="chat__heading">Chat {props.currentRoom.name}</h2>
+      {
+        props.currentRoom.name ?
+          <div className="chat__delete" onClick={deleteChannel}>Delete channel</div> : null
+      }
       <div className="chat__message-container">
-        <span className="chat__welcome-msg">Joined <b>room-name</b></span><br/>
-        <span>12.00PM <b>Emil</b> Message</span>
+        {
+          currentMessages.length ?
+            currentMessages.map(msg => {
+              return (
+                <span key={msg.id} className="chat__message">{moment(msg.timestamp).format('h:mm A')} <b>{msg.user}</b> {msg.message}</span>
+              )
+            }) : <div>...be the first one to say something!</div>
+        }
       </div>
       <form action="" onSubmit={sendMessage}>
-        <input onChange={(e) => handleChange(e)} id="message" className="chat__input" type="text"/>
+        <input className="chat__input" id="message" ref={chatInput} onChange={onChange} type="text"/>
         {
           send ? <button type="submit" className="chat__send">Send</button> : <button type="submit" className="chat__send chat__send--hidden">Send</button>
         }

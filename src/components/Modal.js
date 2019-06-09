@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Modal.css';
 
 function Modal(props) {
   const [name, setName] = useState("");
+  const modalInput = React.createRef();
+
+  useEffect(() => {
+    modalInput.current.focus();
+  }, [])
 
   function handleChange(e) {
     setName(e.nativeEvent.target.value);
@@ -18,7 +23,7 @@ function Modal(props) {
     <div className="modal">
       <h3 className="modal__heading">What do you want to call the channel?</h3>
       <form className="modal__form" action="" onSubmit={(e) => createChannel(e)}>
-        <input className="modal__input" onChange={(e) => handleChange(e)} type="text" id="name"/>
+        <input className="modal__input" ref={modalInput} onChange={(e) => handleChange(e)} type="text" id="name"/>
         <button className="modal__button-cancel" onClick={props.toggleModal}>Cancel</button>
         <button className="modal__button-create" type="submit">Create channel</button>
       </form>

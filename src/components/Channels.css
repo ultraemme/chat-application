@@ -18,6 +18,7 @@
 }
 
 .channels__list li {
+  transition: ease-in-out 0.2s;
   user-select: none;
   border: 1px solid #82d999;
   background-color: rgba(183, 255, 185, 0.66);
@@ -26,9 +27,13 @@
   border-radius: 2px;
 }
 
+.channels__channel {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
 .channels__list li:hover {
   cursor: pointer;
-  transition: ease-in-out 0.2s;
   border: 1px solid #62b779;
   background-color: #aef5b0;
 }

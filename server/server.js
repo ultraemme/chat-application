@@ -1,67 +1,70 @@
 const fs = require('fs');
-const chat = require('./logs.json');
+const logs = require('./logs.json');
 const users = require('./users.json');
 const cfg = require('./config.json');
 const express = require('express');
 const crypto = require('crypto');
 const app = express();
+const uuid = require('uuid/v4');
 
 const socket = require('socket.io');
 const port = cfg.website.port;
 const server = app.listen(port, () => console.log(`Listening on ${port}`));
 const io = socket(server);
 
-let userCount = 0;
 
 io.on('connection', (socket) => {
-  userCount++;
-  console.log('connection established - ' + socket.id)
+  console.log('Connection established: ' + socket.id, "- Sockets connected: " + Object.keys(io.sockets.sockets).length);
+  
+  socket.on('chat', (data, cb) => {
+    let a = {id: uuid(), ...data};
+    cb(a);
+    socket.in(data.room).emit('chat', a);
+  })
 
-  socket.on('chat', (data) => {
-    io.sockets.emit('chat', data);
+  socket.on('join', room => {
+    socket.join(room);
   });
+
+  socket.on('leave', room => {
+    socket.leave(room);
+  })
 
   socket.on('user-connect', (data) => {
     io.sockets.emit('user-connect', data);
   })
 
-  socket.on('user-disconnect', (data) => {
-    userCount--;
-    io.sockets.emit('user-disconnect', data);
-    console.log(userCount);
+  socket.on('disconnect', (data) => {
+
   })
-  console.log(userCount);
-  //io.sockets.clients().connected list of all connected id's
-  // console.log(io.sockets.clients().connected);
+
+  socket.on('channel', (data) => {
+    io.sockets.emit('channel', logs);
+  })
 })
-//empty users {"users":[]}
 
-let writeFile;
+function writeFile (file) {
+  return new Promise((resolve, reject) => {
+    let a;
+    if (file.includes("logs")) {
+      a = logs;
+    } else if (file.includes("users")) {
+      a = users;
+    } else {
+      return;
+    }
 
-function writeFileTimeout() {
-  clearTimeout(writeFile);
-  writeFile = setTimeout(() => {
-    fs.writeFile('./logs.json', JSON.stringify(chat), (err) => {
+    fs.writeFile(file, JSON.stringify(a), (err) => {
       if (err) throw err;
-      writeFileTimeout();
+      resolve();
     })
-  }, 30000)
+  })
 }
-
-// writeFileTimeout();
-
-function generateId(arr) {
-  return arr[arr.length-1].id;
-}
-
-let roomId = generateId(chat.logs);
-let msgId = generateId(chat.logs[chat.logs.length-1].messages);
-console.log(`roomId: ${roomId}, msgId: ${msgId}`);
 
 app.use(express.json());
 
 app.get("/chat", (req, res) => {
-  res.status(200).send(chat);
+  res.status(200).send(logs);
 })
 
 app.get("/validate/:username", (req, res) => {
@@ -79,8 +82,10 @@ app.post("/login", (req, res) => {
     let user = {username: req.body.username, password: derivedKey.toString('hex')};
     if (users.users.length < 1) { //add first user no matter what
       users.users.push(user);
-      res.status(200).send("Registered!");
-      //write to users.json
+      writeFile('./server/users.json')
+        .then(() => {
+          res.status(200).send("Registered!");
+        })
     } else {
       const exists = users.users.some(user => user.username === req.body.username);
       if (exists) { //conclusion is that user already exist, now check pw
@@ -95,44 +100,81 @@ app.post("/login", (req, res) => {
         }
       } else { //username doesn't exist, therefore we added the user
         users.users.push(user);
-        res.status(200).send("Registered!");
-        //write to users.json
+        writeFile('./server/users.json')
+          .then(() => {
+            res.status(200).send("Registered!");
+          })
       }
     }
   });
 })
 
 app.get("/channels", (req, res) => {
-  res.status(200).send(chat);
+  res.status(200).send(logs);
 })
 
 app.post("/channels", (req, res) => {
-  roomId++;
-  msgId++;
-  const body = req.body;
-  const room = {
-    id: roomId,
-    name: body.name,
-    messages: [
-      {
-        id:msgId,
-        user: "Server",
-        message: "Start chatting! :~)"
-      }
-    ]
+  for (let x of logs.logs) {
+    if (x.name === req.body.name) {
+      res.status(409).send("room already exists")
+      return;
+    }
   }
-  chat.logs.push(room);
-  res.status(200).send(room);
+  const room = {
+    id: uuid(),
+    name: req.body.name,
+    users: [],
+    messages: []
+  }
+  logs.logs.push(room);
+  writeFile('./server/logs.json')
+    .then(() => {
+      res.status(200).send(room);
+    })
 })
 
-app.post("/chat/msg", (req, res) => {
-  //know which room then loop through rooms until find correct id, push into that
-  msgId++;
-  const body = req.body;
-  const msg = {
-    id: msgId,
-    user: body.user,
-    message: body.message
+app.delete("/channels/:id", (req, res) => {
+  for (let chan of logs.logs) {
+    if (chan.id === req.params.id) {
+      logs.logs.splice(logs.logs.indexOf(chan), 1);
+    }
+  }
+  writeFile('./server/logs.json')
+    .then(() => {
+      res.status(204).end();
+    })
+})
+
+app.get("/messages/:id", (req, res) => {
+  for(let x of logs.logs) {
+    if (x.id === req.params.id) {
+      res.status(200).send(x.messages);
+      return;
+    }
+  }
+  res.status(400).send("something went wrong");
+})
+
+app.post("/messages/:id", (req, res) => {
+  if (req.body.message && req.body.user && req.params.id) {
+    const msg = { //to store in server
+      timestamp: new Date(),
+      id: uuid(),
+      user: req.body.user,
+      message: req.body.message
+    }
+    for (let channel of logs.logs) {
+      if(channel.id === req.params.id) {
+        if (!channel.users.includes(req.body.user)) channel.users.push(req.body.user);
+        channel.messages.push(msg);
+        writeFile('./server/logs.json')
+          .then(() => {
+            res.status(200).send(msg);
+          })
+      }
+    }
+  } else {
+    res.status(400).send("probably not in a room, or invalid message input")
   }
 });
 
