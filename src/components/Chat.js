@@ -7,13 +7,15 @@ import moment from 'moment';
 function Chat(props) {
   const [message, setMessage] = useState("");
   const [send, setSend] = useState(false);
-  const chatInput = React.createRef();
   const [currentMessages, setCurrentMessages] = useState([]);
+  const chatInput = React.createRef();
+  const messageContainer = React.useRef();
 
-  const updateMessages = (newMsg) => {
+  function updateMessages(newMsg) {
     let arr = [...currentMessages];
     arr.push(newMsg);
     setCurrentMessages(arr);
+    messageContainer.current.scrollTo(0, messageContainer.current.scrollHeight);
   }
 
   props.socket.removeListener('chat');
@@ -32,6 +34,7 @@ function Chat(props) {
 
   function sendMessage (e) {
     e.preventDefault();
+    chatInput.current.focus();
     if (props.currentRoom.id === 0) return;
     axios.post(`/messages/${props.currentRoom.id}`, { user: user$.value, message })
       .then(res => {
@@ -40,6 +43,7 @@ function Chat(props) {
         setMessage("");
         props.socket.emit('chat', {room: props.currentRoom.name, timestamp: new Date(), user: user$.value, message}, function (response) {
           updateMessages(response);
+          // update users from here maybe?
         });
       })
       .catch(err => {
@@ -64,7 +68,7 @@ function Chat(props) {
         props.currentRoom.name ?
           <div className="chat__delete" onClick={deleteChannel}>Delete channel</div> : null
       }
-      <div className="chat__message-container">
+      <div ref={messageContainer} className="chat__message-container">
         {
           currentMessages.length ?
             currentMessages.map(msg => {

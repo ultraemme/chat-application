@@ -7,6 +7,10 @@
   box-sizing: border-box;
 }
 
+html {
+  margin-left: calc(100vw - 100%);
+}
+
 .channels__heading {
   text-align: center;
 }
@@ -15,6 +19,13 @@
   list-style: none;
   text-align: center;
   padding: 0;
+  height: 625px;
+  box-sizing: border-box;
+  overflow-y: scroll;
+}
+
+::-webkit-scrollbar {
+  display: none;
 }
 
 .channels__list li {

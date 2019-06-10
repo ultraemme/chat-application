@@ -6,8 +6,6 @@ import './Lobby.css';
 import io from 'socket.io-client';
 
 const socket = io.connect('http://localhost:8000');
-console.log("socket connected");
-
 let oldRoom = {name: ""};
 
 function Lobby() {

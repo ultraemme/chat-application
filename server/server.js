@@ -30,14 +30,6 @@ io.on('connection', (socket) => {
     socket.leave(room);
   })
 
-  socket.on('user-connect', (data) => {
-    io.sockets.emit('user-connect', data);
-  })
-
-  socket.on('disconnect', (data) => {
-
-  })
-
   socket.on('channel', (data) => {
     io.sockets.emit('channel', logs);
   })
@@ -45,14 +37,7 @@ io.on('connection', (socket) => {
 
 function writeFile (file) {
   return new Promise((resolve, reject) => {
-    let a;
-    if (file.includes("logs")) {
-      a = logs;
-    } else if (file.includes("users")) {
-      a = users;
-    } else {
-      return;
-    }
+    let a = (file.includes("logs")) ? logs : users;
 
     fs.writeFile(file, JSON.stringify(a), (err) => {
       if (err) throw err;
@@ -142,6 +127,7 @@ app.delete("/channels/:id", (req, res) => {
   writeFile('./server/logs.json')
     .then(() => {
       res.status(204).end();
+      io.sockets.emit('channel', logs);
     })
 })
 
@@ -156,6 +142,11 @@ app.get("/messages/:id", (req, res) => {
 })
 
 app.post("/messages/:id", (req, res) => {
+  if(!req.body.user) {
+    res.status(400).send("you must be logged in to send messages!");
+    return;
+  }
+
   if (req.body.message && req.body.user && req.params.id) {
     const msg = { //to store in server
       timestamp: new Date(),
@@ -163,9 +154,12 @@ app.post("/messages/:id", (req, res) => {
       user: req.body.user,
       message: req.body.message
     }
+
     for (let channel of logs.logs) {
       if(channel.id === req.params.id) {
-        if (!channel.users.includes(req.body.user)) channel.users.push(req.body.user);
+        if (!channel.users.includes(req.body.user)) {
+          channel.users.push(req.body.user);
+        }
         channel.messages.push(msg);
         writeFile('./server/logs.json')
           .then(() => {
@@ -174,7 +168,7 @@ app.post("/messages/:id", (req, res) => {
       }
     }
   } else {
-    res.status(400).send("probably not in a room, or invalid message input")
+    res.status(400).send("probably not in a room, or invalid message input");
   }
 });
 

@@ -12,7 +12,8 @@
 }
 
 .chat__message-container {
-
+  height: 595px;
+  overflow: scroll;
 }
 
 .chat__input {
