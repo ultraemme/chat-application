@@ -14,7 +14,7 @@ function Lobby() {
 
   useEffect(() => {
     if (oldRoom.name !== currentRoom.name) {
-      socket.emit('leave', oldRoom.name);
+      socket.emit("leave", oldRoom.name);
       oldRoom.name = currentRoom.name;
     }
   })

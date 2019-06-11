@@ -48,16 +48,12 @@ function writeFile (file) {
 
 app.use(express.json());
 
-app.get("/chat", (req, res) => {
-  res.status(200).send(logs);
-})
-
 app.get("/validate/:username", (req, res) => {
   const exists = users.users.some(user => user.username === req.params.username);
   if (!exists) {
     res.status(200).end();
   } else {
-    res.send("user exists");
+    res.send("user already exists");
   }
 })
 
@@ -65,21 +61,21 @@ app.post("/login", (req, res) => {
   crypto.pbkdf2(req.body.password, 'emilsfetaserver', 100000, 64, 'sha512', (err, derivedKey) => {
     if (err) throw err;
     let user = {username: req.body.username, password: derivedKey.toString('hex')};
-    if (users.users.length < 1) { //add first user no matter what
+    if (users.users.length < 1) {
       users.users.push(user);
       writeFile('./server/users.json')
         .then(() => {
-          res.status(200).send("Registered!");
+          res.status(201).send("registered!");
         })
     } else {
       const exists = users.users.some(user => user.username === req.body.username);
-      if (exists) { //conclusion is that user already exist, now check pw
+      if (exists) {
         for (let u of users.users) {
           if (u.username === req.body.username) {
             if (u.password === derivedKey.toString('hex')) {
-              res.status(200).send("Login started!");
+              res.status(200).send("logged in");
             } else {
-              res.status(401).send("Invalid username or password...");
+              res.status(401).send("invalid username or password...");
             }
           }
         }
@@ -87,7 +83,7 @@ app.post("/login", (req, res) => {
         users.users.push(user);
         writeFile('./server/users.json')
           .then(() => {
-            res.status(200).send("Registered!");
+            res.status(201).send("registered!");
           })
       }
     }
@@ -99,19 +95,27 @@ app.get("/channels", (req, res) => {
 })
 
 app.post("/channels", (req, res) => {
+  if (!req.body.name) {
+    res.status(400).send("a channel name must be provided");
+    return;
+  }
+
   for (let x of logs.logs) {
     if (x.name === req.body.name) {
       res.status(409).send("room already exists")
       return;
     }
   }
+
   const room = {
     id: uuid(),
     name: req.body.name,
     users: [],
     messages: []
   }
+
   logs.logs.push(room);
+
   writeFile('./server/logs.json')
     .then(() => {
       res.status(200).send(room);
@@ -119,16 +123,24 @@ app.post("/channels", (req, res) => {
 })
 
 app.delete("/channels/:id", (req, res) => {
+  if (!req.params.id) {
+    res.status(400).send("a room id must be provided");
+    return;
+  }
+
   for (let chan of logs.logs) {
     if (chan.id === req.params.id) {
       logs.logs.splice(logs.logs.indexOf(chan), 1);
+      writeFile('./server/logs.json')
+        .then(() => {
+          res.status(204).end();
+          io.sockets.emit('channel', logs);
+        })
+      return;
     }
   }
-  writeFile('./server/logs.json')
-    .then(() => {
-      res.status(204).end();
-      io.sockets.emit('channel', logs);
-    })
+
+  res.status(404).send("id provided does not match any of the rooms");
 })
 
 app.get("/messages/:id", (req, res) => {
@@ -138,17 +150,19 @@ app.get("/messages/:id", (req, res) => {
       return;
     }
   }
-  res.status(400).send("something went wrong");
+
+  res.status(404).send("id provided does not match any of the rooms");
 })
 
 app.post("/messages/:id", (req, res) => {
+  //how can i validate that a the person making requests is the person that has logged in
   if(!req.body.user) {
     res.status(400).send("you must be logged in to send messages!");
     return;
   }
 
   if (req.body.message && req.body.user && req.params.id) {
-    const msg = { //to store in server
+    const msg = {
       timestamp: new Date(),
       id: uuid(),
       user: req.body.user,
@@ -168,7 +182,6 @@ app.post("/messages/:id", (req, res) => {
       }
     }
   } else {
-    res.status(400).send("probably not in a room, or invalid message input");
+    res.status(400).send("a message and room id must be provided");
   }
 });
-
